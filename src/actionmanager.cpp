@@ -253,6 +253,8 @@ QMenu *ActionManager::buildViewMenu(bool addIcon, QWidget *parent)
     addCloneOfAction(viewMenu, "zoomout");
     addCloneOfAction(viewMenu, "resetzoom");
     addCloneOfAction(viewMenu, "originalsize");
+    addCloneOfAction(viewMenu, "fittoscreen");
+    addCloneOfAction(viewMenu, "fillscreen");
     viewMenu->addSeparator();
     addCloneOfAction(viewMenu, "rotateright");
     addCloneOfAction(viewMenu, "rotateleft");
@@ -607,6 +609,10 @@ void ActionManager::actionTriggered(QAction *triggeredAction, MainWindow *releva
         relevantWindow->resetZoom();
     } else if (key == "originalsize") {
         relevantWindow->originalSize();
+    } else if (key == "fittoscreen") {
+        relevantWindow->fitToScreen();
+    } else if (key == "fillscreen") {
+        relevantWindow->fillScreen();
     } else if (key == "rotateright") {
         relevantWindow->rotateRight();
     } else if (key == "rotateleft") {
@@ -733,6 +739,14 @@ void ActionManager::initializeActionLibrary()
     auto *originalSizeAction = new QAction(QIcon::fromTheme("zoom-original"), tr("Ori&ginal Size"));
     originalSizeAction->setData({"disable"});
     actionLibrary.insert("originalsize", originalSizeAction);
+
+    auto *fitToScreenAction = new QAction(QIcon::fromTheme("zoom-fit-best"), tr("Fit to &Screen"));
+    fitToScreenAction->setData({"disable"});
+    actionLibrary.insert("fittoscreen", fitToScreenAction);
+
+    auto *fillScreenAction = new QAction(QIcon::fromTheme("zoom-fit-width"), tr("Fill &Screen"));
+    fillScreenAction->setData({"disable"});
+    actionLibrary.insert("fillscreen", fillScreenAction);
 
     auto *rotateRightAction = new QAction(QIcon::fromTheme("object-rotate-right"), tr("Rotate &Right"));
     rotateRightAction->setData({"disable"});

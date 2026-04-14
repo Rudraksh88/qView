@@ -81,6 +81,10 @@ public:
 
     void originalSize();
 
+    void fitToScreen();
+
+    void fillScreen();
+
     void rotateRight();
 
     void rotateLeft();

@@ -1304,96 +1304,106 @@ No write permission or file is read-only.</source>
     </message>
     <message>
         <location filename="../src/shortcutmanager.cpp" line="83"/>
-        <source>Rotate Right</source>
+        <source>Fit to Screen</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/shortcutmanager.cpp" line="84"/>
-        <source>Rotate Left</source>
+        <source>Fill Screen</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/shortcutmanager.cpp" line="85"/>
-        <source>Mirror</source>
+        <source>Rotate Right</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/shortcutmanager.cpp" line="86"/>
-        <source>Flip</source>
+        <source>Rotate Left</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/shortcutmanager.cpp" line="87"/>
+        <source>Mirror</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/shortcutmanager.cpp" line="88"/>
+        <source>Flip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/shortcutmanager.cpp" line="89"/>
         <source>Full Screen</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="99"/>
+        <location filename="../src/shortcutmanager.cpp" line="100"/>
         <source>Save Frame As</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="100"/>
+        <location filename="../src/shortcutmanager.cpp" line="101"/>
         <source>Pause</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="101"/>
+        <location filename="../src/shortcutmanager.cpp" line="102"/>
         <source>Next Frame</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="102"/>
+        <location filename="../src/shortcutmanager.cpp" line="103"/>
         <source>Decrease Speed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="103"/>
+        <location filename="../src/shortcutmanager.cpp" line="104"/>
         <source>Reset Speed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="104"/>
+        <location filename="../src/shortcutmanager.cpp" line="105"/>
         <source>Increase Speed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="105"/>
+        <location filename="../src/shortcutmanager.cpp" line="106"/>
         <source>Toggle Slideshow</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="106"/>
+        <location filename="../src/shortcutmanager.cpp" line="107"/>
         <source>Options</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="108"/>
+        <location filename="../src/shortcutmanager.cpp" line="109"/>
         <source>Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="112"/>
+        <location filename="../src/shortcutmanager.cpp" line="113"/>
         <source>New Window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="113"/>
+        <location filename="../src/shortcutmanager.cpp" line="114"/>
         <source>Close Window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="114"/>
+        <location filename="../src/shortcutmanager.cpp" line="115"/>
         <source>Close All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="116"/>
+        <location filename="../src/shortcutmanager.cpp" line="117"/>
         <source>Quit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/shortcutmanager.cpp" line="121"/>
+        <location filename="../src/shortcutmanager.cpp" line="122"/>
         <source>Exit</source>
         <translation type="unfinished"></translation>
     </message>

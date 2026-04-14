@@ -50,6 +50,8 @@ public:
     void resetScale();
     void originalSize();
 
+    void fillScreen();
+
     void goToFile(const GoToFileMode &mode, int index = 0);
 
     void settingsUpdated();
@@ -114,7 +116,6 @@ private slots:
     void error(int errorNum, const QString &errorString, const QString &fileName);
 
 private:
-
 
     QGraphicsPixmapItem *loadedPixmapItem;
 

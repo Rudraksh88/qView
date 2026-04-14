@@ -365,6 +365,7 @@ void MainWindow::disableActions()
                 {
                     clone->setEnabled(!getCurrentFileDetails().folderFileInfoList.isEmpty());
                 }
+
             }
         }
     }
@@ -1015,6 +1016,16 @@ void MainWindow::resetZoom()
 void MainWindow::originalSize()
 {
     graphicsView->originalSize();
+}
+
+void MainWindow::fitToScreen()
+{
+    graphicsView->resetScale();
+}
+
+void MainWindow::fillScreen()
+{
+    graphicsView->fillScreen();
 }
 
 void MainWindow::rotateRight()

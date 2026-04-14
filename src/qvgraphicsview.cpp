@@ -419,6 +419,91 @@ void QVGraphicsView::resetScale()
         expensiveScaleTimerNew->start();
 }
 
+void QVGraphicsView::fillScreen()
+{
+    if (!getCurrentFileDetails().isPixmapLoaded)
+        return;
+
+#ifdef COCOA_LOADED
+    int obscuredHeight = QVCocoaFunctions::getObscuredHeight(window()->windowHandle());
+#else
+    int obscuredHeight = 0;
+#endif
+
+    // Set adjusted image size based on crop mode
+    QSize adjustedImageSize = getCurrentFileDetails().loadedPixmapSize;
+    QRectF adjustedBoundingRect = loadedPixmapItem->sceneBoundingRect();
+
+    switch (cropMode) {
+    case 1: // only take into account height
+    {
+        adjustedImageSize.setWidth(1);
+        adjustedBoundingRect.setWidth(1);
+        break;
+    }
+    case 2: // only take into account width
+    {
+        adjustedImageSize.setHeight(1);
+        adjustedBoundingRect.setHeight(1);
+        break;
+    }
+    }
+    adjustedBoundingRect.moveCenter(loadedPixmapItem->sceneBoundingRect().center());
+
+    if (!scene() || adjustedBoundingRect.isNull())
+        return;
+
+    // Reset the view scale to 1:1.
+    QRectF unity = transform().mapRect(QRectF(0, 0, 1, 1));
+    if (unity.isEmpty())
+        return;
+    scale(1 / unity.width(), 1 / unity.height());
+
+    // Determine what we are resizing to - fill the entire viewport
+    const int adjWidth = width() - MARGIN;
+    const int adjHeight = height() - MARGIN - obscuredHeight;
+    Q_UNUSED(adjWidth)
+    Q_UNUSED(adjHeight)
+
+    QRectF viewRect = viewport()->rect().adjusted(MARGIN, MARGIN, -MARGIN, -MARGIN);
+    viewRect.setHeight(viewRect.height() - obscuredHeight);
+
+    if (viewRect.isEmpty())
+        return;
+
+    // Find the ideal x / y scaling ratio to fill the view (opposite of fit)
+    QRectF sceneRect = transform().mapRect(adjustedBoundingRect);
+    if (sceneRect.isEmpty())
+        return;
+
+    qreal xratio = viewRect.width() / sceneRect.width();
+    qreal yratio = viewRect.height() / sceneRect.height();
+
+    // Use the maximum ratio to fill the entire screen (may crop parts of the image)
+    xratio = yratio = qMax(xratio, yratio);
+
+    // Find and set the transform required to fill the original image
+    QRectF sceneRect2 = transform().mapRect(QRectF({}, adjustedImageSize));
+    qreal absoluteRatio = qMax(viewRect.width() / sceneRect2.width(),
+                               viewRect.height() / sceneRect2.height());
+
+    absoluteTransform = QTransform::fromScale(absoluteRatio, absoluteRatio);
+
+    // Scale and center on the center of the image
+    scale(xratio, yratio);
+    centerOn(adjustedBoundingRect.center());
+
+    // variables
+    zoomBasis = transform();
+
+    isOriginalSize = false;
+    currentScale = 1.0;
+    zoomBasisScaleFactor = 1.0;
+
+    if (isScalingEnabled)
+        expensiveScaleTimerNew->start();
+}
+
 void QVGraphicsView::originalSize()
 {
     if (isOriginalSize)
