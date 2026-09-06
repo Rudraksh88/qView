@@ -154,9 +154,18 @@ private:
     QTimer *expensiveScaleTimerNew;
     QPointF centerPoint;
 
+    // Width of the tap navigation zones on each side of the view
+    const int NAVIGATION_ZONE_PERCENT = 30;
+
+    enum class TapZone
+    {
+        Previous,
+        None,
+        Next
+    };
+    TapZone tapZoneAt(const QPoint &pos) const;
+
     QPoint tapPressPos;
     bool isTapCandidate;
-    QTimer *tapTimer;
-    GoToFileMode pendingTapMode;
 };
 #endif // QVGRAPHICSVIEW_H

@@ -51,13 +51,6 @@ QVGraphicsView::QVGraphicsView(QWidget *parent) : QGraphicsView(parent)
     zoomBasisScaleFactor = 1.0;
 
     isTapCandidate = false;
-    pendingTapMode = GoToFileMode::next;
-
-    // A tap navigates only once the double-click interval has passed, so a
-    // double-click can still toggle fullscreen instead
-    tapTimer = new QTimer(this);
-    tapTimer->setSingleShot(true);
-    connect(tapTimer, &QTimer::timeout, this, [this]{ goToFile(pendingTapMode); });
 
     connect(&imageCore, &QVImageCore::animatedFrameChanged, this, &QVGraphicsView::animatedFrameChanged);
     connect(&imageCore, &QVImageCore::fileChanged, this, &QVGraphicsView::postLoad);
@@ -157,21 +150,37 @@ void QVGraphicsView::mouseReleaseEvent(QMouseEvent *event)
         return;
     isTapCandidate = false;
 
-    // Tap on the left half of the view goes to the previous file, on the right half to the next
-    pendingTapMode = event->pos().x() < viewport()->width() / 2 ? GoToFileMode::previous : GoToFileMode::next;
-    tapTimer->start(QApplication::doubleClickInterval());
+    // A tap on the left side of the view goes to the previous file, on the right side to
+    // the next one. The middle is left alone so double-clicking there can toggle fullscreen.
+    const TapZone zone = tapZoneAt(event->pos());
+    if (zone == TapZone::Previous)
+        goToFile(GoToFileMode::previous);
+    else if (zone == TapZone::Next)
+        goToFile(GoToFileMode::next);
 }
 
 void QVGraphicsView::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    // A double-click toggles fullscreen (handled by the main window) instead of navigating
-    if (event->button() == Qt::LeftButton)
+    // In the navigation zones a quick second tap is just another tap. In the middle a
+    // double-click toggles fullscreen (handled by the main window).
+    if (event->button() == Qt::LeftButton && tapZoneAt(event->pos()) != TapZone::None)
     {
-        tapTimer->stop();
-        isTapCandidate = false;
+        mousePressEvent(event);
+        event->accept();
+        return;
     }
 
     QGraphicsView::mouseDoubleClickEvent(event);
+}
+
+QVGraphicsView::TapZone QVGraphicsView::tapZoneAt(const QPoint &pos) const
+{
+    const int width = viewport()->width();
+    if (pos.x() * 100 < width * NAVIGATION_ZONE_PERCENT)
+        return TapZone::Previous;
+    if (pos.x() * 100 > width * (100 - NAVIGATION_ZONE_PERCENT))
+        return TapZone::Next;
+    return TapZone::None;
 }
 
 bool QVGraphicsView::event(QEvent *event)
