@@ -27,6 +27,7 @@ QVImageCore::QVImageCore(QObject *parent) : QObject(parent)
     preloadingMode = 1;
     sortMode = 0;
     sortDescending = false;
+    followFileManagerSort = true;
     allowMimeContentDetection = false;
     colorSpaceConversion = 1;
 
@@ -252,7 +253,110 @@ void QVImageCore::closeImage()
 }
 
 // All file logic, sorting, etc should be moved to a different class or file
-QList<QVImageCore::CompatibleFile> QVImageCore::getCompatibleFiles(const QString &dirPath) const
+static int compareNames(const QString &name1, const QString &name2, QVFolderSort::NameCompare mode, const QCollator &collator)
+{
+    switch (mode) {
+    case QVFolderSort::NameCompare::Natural:
+    {
+        // Like file managers: compare the base names first so "a.jpg" sorts before
+        // "a-1.jpg", then the extensions
+        const int extension1 = name1.lastIndexOf('.');
+        const int extension2 = name2.lastIndexOf('.');
+        const int baseLength1 = extension1 > 0 ? extension1 : name1.length();
+        const int baseLength2 = extension2 > 0 ? extension2 : name2.length();
+
+        const int result = collator.compare(name1.left(baseLength1), name2.left(baseLength2));
+        if (result != 0)
+            return result;
+        return collator.compare(name1.mid(baseLength1), name2.mid(baseLength2));
+    }
+    case QVFolderSort::NameCompare::CaseInsensitive:
+    {
+        const int result = QString::compare(name1, name2, Qt::CaseInsensitive);
+        if (result != 0)
+            return result;
+        return QString::compare(name1, name2, Qt::CaseSensitive);
+    }
+    case QVFolderSort::NameCompare::CaseSensitive:
+        return QString::compare(name1, name2, Qt::CaseSensitive);
+    }
+    return 0;
+}
+
+template <typename T>
+static int compareValues(const T &value1, const T &value2)
+{
+    return (value1 > value2) - (value1 < value2);
+}
+
+// Compares two files in ascending order of the given sort. Ties are broken by
+// name and then path so the resulting order is always the same.
+static int compareFiles(const QVImageCore::CompatibleFile &file1, const QVImageCore::CompatibleFile &file2, const QVFolderSort &sort, const QCollator &collator)
+{
+    int result = 0;
+    switch (sort.role) {
+    case QVFolderSort::Role::Modified:
+        result = compareValues(file1.lastModified, file2.lastModified);
+        break;
+    case QVFolderSort::Role::Created:
+        result = compareValues(file1.lastCreated, file2.lastCreated);
+        break;
+    case QVFolderSort::Role::Size:
+        result = compareValues(file1.size, file2.size);
+        break;
+    case QVFolderSort::Role::Type:
+        result = collator.compare(file1.typeName, file2.typeName);
+        break;
+    case QVFolderSort::Role::Name:
+    case QVFolderSort::Role::Random:
+        break;
+    }
+    if (result != 0)
+        return result;
+
+    result = compareNames(file1.fileName, file2.fileName, sort.nameCompare, collator);
+    if (result != 0)
+        return result;
+
+    return QString::compare(file1.absoluteFilePath, file2.absoluteFilePath);
+}
+
+QVFolderSort QVImageCore::resolveFolderSort(const QString &dirPath) const
+{
+    QVFolderSort sort;
+    if (followFileManagerSort && QVFolderSort::fromFileManager(dirPath, sort))
+        return sort;
+
+    switch (sortMode) {
+    case 1:
+        sort.role = QVFolderSort::Role::Modified;
+        break;
+    case 2:
+        sort.role = QVFolderSort::Role::Created;
+        break;
+    case 3:
+        sort.role = QVFolderSort::Role::Size;
+        break;
+    case 4:
+        sort.role = QVFolderSort::Role::Type;
+        break;
+    case 5:
+        sort.role = QVFolderSort::Role::Random;
+        break;
+    default:
+        sort.role = QVFolderSort::Role::Name;
+        break;
+    }
+    // In qView's settings "ascending" means A to Z for names and types but
+    // newest first for dates and largest first for sizes
+    const bool reversedRole = sort.role == QVFolderSort::Role::Modified
+                              || sort.role == QVFolderSort::Role::Created
+                              || sort.role == QVFolderSort::Role::Size;
+    sort.descending = reversedRole ? !sortDescending : sortDescending;
+    return sort;
+}
+
+QList<QVImageCore::CompatibleFile> QVImageCore::getCompatibleFiles(const QString &dirPath, QVFolderSort::Role sortRole) const
 {
     QList<CompatibleFile> fileList;
 
@@ -276,25 +380,26 @@ QList<QVImageCore::CompatibleFile> QVImageCore::getCompatibleFiles(const QString
                 break;
             }
         }
-        QString mimeType;
-        if (!matched || sortMode == 4)
+        QMimeType mimeType;
+        if (!matched || sortRole == QVFolderSort::Role::Type)
         {
-            mimeType = mimeDb.mimeTypeForFile(absoluteFilePath, mimeMatchMode).name();
-            matched |= mimeTypes.contains(mimeType);
+            mimeType = mimeDb.mimeTypeForFile(absoluteFilePath, mimeMatchMode);
+            matched |= mimeTypes.contains(mimeType.name());
         }
         if (matched)
         {
             fileList.append({
                 absoluteFilePath,
                 fileName,
-                sortMode == 1 ? fileInfo.lastModified().toMSecsSinceEpoch() : 0,
+                sortRole == QVFolderSort::Role::Modified ? fileInfo.lastModified().toMSecsSinceEpoch() : 0,
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
-                sortMode == 2 ? fileInfo.birthTime().toMSecsSinceEpoch() : 0,
+                sortRole == QVFolderSort::Role::Created ? fileInfo.birthTime().toMSecsSinceEpoch() : 0,
 #else
-                sortMode == 2 ? fileInfo.created().toMSecsSinceEpoch() : 0,
+                sortRole == QVFolderSort::Role::Created ? fileInfo.created().toMSecsSinceEpoch() : 0,
 #endif
-                sortMode == 3 ? fileInfo.size() : 0,
-                sortMode == 4 ? mimeType : QString()
+                sortRole == QVFolderSort::Role::Size ? fileInfo.size() : 0,
+                // The human-readable type, like a file manager shows it
+                sortRole == QVFolderSort::Role::Type ? mimeType.comment() : QString()
             });
         }
     }
@@ -313,7 +418,8 @@ void QVImageCore::updateFolderInfo(QString dirPath)
             return;
     }
 
-    currentFileDetails.folderFileInfoList = getCompatibleFiles(dirPath);
+    const QVFolderSort sort = resolveFolderSort(dirPath);
+    currentFileDetails.folderFileInfoList = getCompatibleFiles(dirPath, sort.role);
 
     QPair<QString, int> dirInfo = {dirPath,
                                          currentFileDetails.folderFileInfoList.count()};
@@ -326,73 +432,22 @@ void QVImageCore::updateFolderInfo(QString dirPath)
 
     // Sorting
 
-    if (sortMode == 0) // Natural sorting
+    if (sort.role == QVFolderSort::Role::Random)
+    {
+        std::shuffle(currentFileDetails.folderFileInfoList.begin(), currentFileDetails.folderFileInfoList.end(), std::default_random_engine(randomSortSeed));
+    }
+    else
     {
         QCollator collator;
         collator.setNumericMode(true);
+        collator.setCaseSensitivity(Qt::CaseInsensitive);
         std::sort(currentFileDetails.folderFileInfoList.begin(),
                   currentFileDetails.folderFileInfoList.end(),
-                  [&collator, this](const CompatibleFile &file1, const CompatibleFile &file2)
+                  [&sort, &collator](const CompatibleFile &file1, const CompatibleFile &file2)
         {
-            if (sortDescending)
-                return collator.compare(file1.fileName, file2.fileName) > 0;
-            else
-                return collator.compare(file1.fileName, file2.fileName) < 0;
+            const int result = compareFiles(file1, file2, sort, collator);
+            return sort.descending ? result > 0 : result < 0;
         });
-    }
-    else if (sortMode == 1) // date modified
-    {
-        std::sort(currentFileDetails.folderFileInfoList.begin(),
-                  currentFileDetails.folderFileInfoList.end(),
-                  [this](const CompatibleFile &file1, const CompatibleFile &file2)
-        {
-            if (sortDescending)
-                return file1.lastModified < file2.lastModified;
-            else
-                return file1.lastModified > file2.lastModified;
-        });
-    }
-    else if (sortMode == 2) // date created
-    {
-        std::sort(currentFileDetails.folderFileInfoList.begin(),
-                  currentFileDetails.folderFileInfoList.end(),
-                  [this](const CompatibleFile &file1, const CompatibleFile &file2)
-        {
-            if (sortDescending)
-                return file1.lastCreated < file2.lastCreated;
-            else
-                return file1.lastCreated > file2.lastCreated;
-        });
-
-    }
-    else if (sortMode == 3) // size
-    {
-        std::sort(currentFileDetails.folderFileInfoList.begin(),
-                  currentFileDetails.folderFileInfoList.end(),
-                  [this](const CompatibleFile &file1, const CompatibleFile &file2)
-        {
-            if (sortDescending)
-                return file1.size < file2.size;
-            else
-                return file1.size > file2.size;
-        });
-    }
-    else if (sortMode == 4) // type
-    {
-        QCollator collator;
-        std::sort(currentFileDetails.folderFileInfoList.begin(),
-                  currentFileDetails.folderFileInfoList.end(),
-                  [&collator, this](const CompatibleFile &file1, const CompatibleFile &file2)
-        {
-            if (sortDescending)
-                return collator.compare(file1.mimeType, file2.mimeType) > 0;
-            else
-                return collator.compare(file1.mimeType, file2.mimeType) < 0;
-        });
-    }
-    else if (sortMode == 5) // Random
-    {
-        std::shuffle(currentFileDetails.folderFileInfoList.begin(), currentFileDetails.folderFileInfoList.end(), std::default_random_engine(randomSortSeed));
     }
 
     // Set current file index variable
@@ -659,6 +714,9 @@ void QVImageCore::settingsUpdated()
 
     //sort ascending
     sortDescending = settingsManager.getBoolean("sortdescending");
+
+    //follow the file manager's folder sorting
+    followFileManagerSort = settingsManager.getBoolean("followfilemanagersort");
 
     //allow mime content detection
     allowMimeContentDetection = settingsManager.getBoolean("allowmimecontentdetection");

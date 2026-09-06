@@ -5,6 +5,7 @@
 #include <QImageReader>
 #include <QPixmap>
 #include <QMovie>
+#include "qvfoldersort.h"
 #include <QFileInfo>
 #include <QFutureWatcher>
 #include <QTimer>
@@ -31,7 +32,7 @@ public:
         qint64 lastModified;
         qint64 lastCreated;
         qint64 size;
-        QString mimeType;
+        QString typeName;
     };
 
     struct FileDetails
@@ -64,7 +65,8 @@ public:
     ReadData readFile(const QString &fileName, const QColorSpace &targetColorSpace, bool forCache);
     void loadPixmap(const ReadData &readData);
     void closeImage();
-    QList<CompatibleFile> getCompatibleFiles(const QString &dirPath) const;
+    QList<CompatibleFile> getCompatibleFiles(const QString &dirPath, QVFolderSort::Role sortRole) const;
+    QVFolderSort resolveFolderSort(const QString &dirPath) const;
     void updateFolderInfo(QString dirPath = QString());
     void requestCaching();
     void requestCachingFile(const QString &filePath, const QColorSpace &targetColorSpace);
@@ -114,6 +116,7 @@ private:
     int preloadingMode;
     int sortMode;
     bool sortDescending;
+    bool followFileManagerSort;
     bool allowMimeContentDetection;
     int colorSpaceConversion;
 

@@ -10,6 +10,7 @@ SOURCES += \
     $$PWD/qvwelcomedialog.cpp \
     $$PWD/qvinfodialog.cpp \
     $$PWD/qvimagecore.cpp \
+    $$PWD/qvfoldersort.cpp \
     $$PWD/qvshortcutdialog.cpp \
     $$PWD/actionmanager.cpp \
     $$PWD/settingsmanager.cpp \
@@ -31,6 +32,7 @@ HEADERS += \
     $$PWD/qvwelcomedialog.h \
     $$PWD/qvinfodialog.h \
     $$PWD/qvimagecore.h \
+    $$PWD/qvfoldersort.h \
     $$PWD/qvshortcutdialog.h \
     $$PWD/actionmanager.h \
     $$PWD/settingsmanager.h \

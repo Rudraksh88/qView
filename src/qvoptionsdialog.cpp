@@ -187,6 +187,8 @@ void QVOptionsDialog::syncSettings(bool defaults, bool makeConnections)
     syncComboBox(ui->sortComboBox, "sortmode", defaults, makeConnections);
     // sortdescending
     syncRadioButtons({ui->descendingRadioButton0, ui->descendingRadioButton1}, "sortdescending", defaults, makeConnections);
+    // followfilemanagersort
+    syncCheckbox(ui->followFileManagerSortCheckbox, "followfilemanagersort", defaults, makeConnections);
     // preloadingmode
     syncComboBox(ui->preloadingComboBox, "preloadingmode", defaults, makeConnections);
     // loopfolders

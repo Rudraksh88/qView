@@ -171,6 +171,7 @@ void SettingsManager::initializeSettingsLibrary()
     settingsLibrary.insert("language", {"system", {}});
     settingsLibrary.insert("sortmode", {0, {}});
     settingsLibrary.insert("sortdescending", {false, {}});
+    settingsLibrary.insert("followfilemanagersort", {true, {}});
     settingsLibrary.insert("preloadingmode", {1, {}});
     settingsLibrary.insert("loopfoldersenabled", {true, {}});
     settingsLibrary.insert("slideshowreversed", {false, {}});
