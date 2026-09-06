@@ -1,7 +1,7 @@
 TARGET = qView
 VERSION = 6.1
 
-QT += core gui network widgets dbus
+QT += core gui network widgets dbus svg
 
 TEMPLATE = app
 
@@ -36,8 +36,6 @@ CONFIG(debug, debug|release) {
 
 # Windows specific stuff
 win32 {
-    QT += svg # needed for including svg support in static build
-
     # To build without win32: qmake CONFIG+=NO_WIN32
     !CONFIG(NO_WIN32) {
         LIBS += -lshell32 -luser32 -lole32 -lshlwapi -lgdi32
@@ -52,8 +50,6 @@ win32 {
 
 # macOS specific stuff
 macx {
-    QT += svg # needed for macdeployqt added qsvg plugin automatically
-
     # To build without cocoa: qmake CONFIG+=NO_COCOA
     !CONFIG(NO_COCOA) {
         LIBS += -framework Cocoa

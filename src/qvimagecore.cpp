@@ -13,6 +13,9 @@
 #include <QIcon>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QFile>
+#include <QPainter>
+#include <QSvgRenderer>
 
 QCache<QString, QVImageCore::ReadData> QVImageCore::pixmapCache;
 
@@ -132,15 +135,38 @@ QVImageCore::ReadData QVImageCore::readFile(const QString &fileName, const QColo
     imageReader.setFileName(fileName);
 
     QImage readImage;
-    if (imageReader.format() == "svg" || imageReader.format() == "svgz")
+    QByteArray svgBytes;
+    QSize svgNativeSize;
+    const bool isSvg = (imageReader.format() == "svg" || imageReader.format() == "svgz");
+    if (isSvg)
     {
-        // Render vectors into a high resolution
-        QIcon icon;
-        icon.addFile(fileName);
-        readImage = icon.pixmap(largestDimension).toImage();
-        // If this fails, try reading the normal way so that a proper error message is given
-        if (readImage.isNull())
+        QFile svgFile(fileName);
+        if (svgFile.open(QIODevice::ReadOnly))
+        {
+            svgBytes = svgFile.readAll();
+            svgFile.close();
+        }
+
+        QSvgRenderer renderer(svgBytes);
+        if (renderer.isValid())
+        {
+            svgNativeSize = renderer.defaultSize();
+            if (svgNativeSize.isEmpty())
+                svgNativeSize = QSize(512, 512);
+
+            readImage = QImage(svgNativeSize, QImage::Format_ARGB32_Premultiplied);
+            readImage.fill(Qt::transparent);
+            QPainter painter(&readImage);
+            painter.setRenderHint(QPainter::Antialiasing, true);
+            painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+            renderer.render(&painter);
+            painter.end();
+        }
+        else
+        {
+            svgBytes.clear();
             readImage = imageReader.read();
+        }
     }
     else
     {
@@ -164,8 +190,10 @@ QVImageCore::ReadData QVImageCore::readFile(const QString &fileName, const QColo
         readPixmap,
         fileInfo.absoluteFilePath(),
         fileInfo.size(),
-        imageReader.size(),
-        targetColorSpace
+        isSvg && svgNativeSize.isValid() ? svgNativeSize : imageReader.size(),
+        targetColorSpace,
+        svgBytes,
+        svgNativeSize
     };
     // Only error out when not loading for cache
     if (readPixmap.isNull() && !forCache)
@@ -191,6 +219,9 @@ void QVImageCore::loadPixmap(const ReadData &readData)
         return;
 
     loadedPixmap = matchCurrentRotation(readData.pixmap);
+
+    loadedSvgData = readData.svgData;
+    loadedSvgNativeSize = readData.svgNativeSize;
 
     // Set file details
     currentFileDetails.isPixmapLoaded = true;
@@ -235,6 +266,8 @@ void QVImageCore::loadPixmap(const ReadData &readData)
 void QVImageCore::closeImage()
 {
     loadedPixmap = QPixmap();
+    loadedSvgData.clear();
+    loadedSvgNativeSize = QSize();
     loadedMovie.stop();
     loadedMovie.setFileName("");
     currentFileDetails = {
@@ -656,10 +689,39 @@ QPixmap QVImageCore::scaleExpensively(const int desiredWidth, const int desiredH
     return scaleExpensively(QSizeF(desiredWidth, desiredHeight));
 }
 
+QPixmap QVImageCore::renderSvg(const QSize &size) const
+{
+    if (loadedSvgData.isEmpty() || size.isEmpty())
+        return QPixmap();
+
+    QSvgRenderer renderer(loadedSvgData);
+    if (!renderer.isValid())
+        return QPixmap();
+
+    QImage image(size, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    renderer.render(&painter);
+    painter.end();
+
+    if (currentRotation)
+        return QPixmap::fromImage(const_cast<QVImageCore *>(this)->matchCurrentRotation(image));
+    return QPixmap::fromImage(image);
+}
+
 QPixmap QVImageCore::scaleExpensively(const QSizeF desiredSize)
 {
     if (!currentFileDetails.isPixmapLoaded)
         return QPixmap();
+
+    if (isSvgLoaded())
+    {
+        QSize target = loadedSvgNativeSize.isEmpty() ? loadedPixmap.size() : loadedSvgNativeSize;
+        target.scale(desiredSize.toSize(), Qt::KeepAspectRatio);
+        return renderSvg(target);
+    }
 
     QSize size = QSize(loadedPixmap.width(), loadedPixmap.height());
     size.scale(desiredSize.toSize(), Qt::KeepAspectRatio);

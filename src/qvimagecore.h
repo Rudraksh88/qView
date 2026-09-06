@@ -57,6 +57,8 @@ public:
         qint64 fileSize;
         QSize imageSize;
         QColorSpace targetColorSpace;
+        QByteArray svgData;
+        QSize svgNativeSize;
     };
 
     explicit QVImageCore(QObject *parent = nullptr);
@@ -93,6 +95,8 @@ public:
     const QMovie& getLoadedMovie() const {return loadedMovie; }
     const FileDetails& getCurrentFileDetails() const {return currentFileDetails; }
     int getCurrentRotation() const {return currentRotation; }
+    bool isSvgLoaded() const { return !loadedSvgData.isEmpty(); }
+    QPixmap renderSvg(const QSize &size) const;
 
 signals:
     void animatedFrameChanged(QRect rect);
@@ -130,6 +134,9 @@ private:
     int largestDimension;
 
     bool waitingOnLoad;
+
+    QByteArray loadedSvgData;
+    QSize loadedSvgNativeSize;
 };
 
 #endif // QVIMAGECORE_H

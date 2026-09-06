@@ -373,8 +373,10 @@ void QVGraphicsView::scaleExpensively()
         flipped = true;
 
     // If we are above maximum scaling size
-    if ((currentScale >= maxScalingTwoSize) ||
-        (!isScalingTwoEnabled && currentScale > 1.00001))
+    // Always re-render SVG at target size to keep vectors crisp at any zoom
+    if (!imageCore.isSvgLoaded() &&
+        ((currentScale >= maxScalingTwoSize) ||
+         (!isScalingTwoEnabled && currentScale > 1.00001)))
     {
         // Return to original size
         makeUnscaled();
