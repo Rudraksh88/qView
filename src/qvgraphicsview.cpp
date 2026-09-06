@@ -50,6 +50,8 @@ QVGraphicsView::QVGraphicsView(QWidget *parent) : QGraphicsView(parent)
 
     zoomBasisScaleFactor = 1.0;
 
+    isTapCandidate = false;
+
     connect(&imageCore, &QVImageCore::animatedFrameChanged, this, &QVGraphicsView::animatedFrameChanged);
     connect(&imageCore, &QVImageCore::fileChanged, this, &QVGraphicsView::postLoad);
     connect(&imageCore, &QVImageCore::updateLoadedPixmapItem, this, &QVGraphicsView::updateLoadedPixmapItem);
@@ -119,10 +121,50 @@ void QVGraphicsView::enterEvent(QEnterEvent *event)
     viewport()->setCursor(Qt::ArrowCursor);
 }
 
+void QVGraphicsView::mousePressEvent(QMouseEvent *event)
+{
+    QGraphicsView::mousePressEvent(event);
+
+    if (event->button() == Qt::LeftButton)
+    {
+        tapPressPos = event->pos();
+        isTapCandidate = true;
+    }
+}
+
+void QVGraphicsView::mouseMoveEvent(QMouseEvent *event)
+{
+    QGraphicsView::mouseMoveEvent(event);
+
+    // Dragging (panning) is not a tap
+    if (isTapCandidate && (event->pos() - tapPressPos).manhattanLength() >= QApplication::startDragDistance())
+        isTapCandidate = false;
+}
+
 void QVGraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
     QGraphicsView::mouseReleaseEvent(event);
     viewport()->setCursor(Qt::ArrowCursor);
+
+    if (event->button() != Qt::LeftButton || !isTapCandidate)
+        return;
+    isTapCandidate = false;
+
+    // Tap on the left half of the view goes to the previous file, on the right half to the next
+    goToFile(event->pos().x() < viewport()->width() / 2 ? GoToFileMode::previous : GoToFileMode::next);
+}
+
+void QVGraphicsView::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    // A quick second tap is another navigation tap, not a request to toggle fullscreen
+    if (event->button() == Qt::LeftButton)
+    {
+        mousePressEvent(event);
+        event->accept();
+        return;
+    }
+
+    QGraphicsView::mouseDoubleClickEvent(event);
 }
 
 bool QVGraphicsView::event(QEvent *event)
