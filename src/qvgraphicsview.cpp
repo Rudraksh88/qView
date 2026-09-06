@@ -51,6 +51,13 @@ QVGraphicsView::QVGraphicsView(QWidget *parent) : QGraphicsView(parent)
     zoomBasisScaleFactor = 1.0;
 
     isTapCandidate = false;
+    pendingTapMode = GoToFileMode::next;
+
+    // A tap navigates only once the double-click interval has passed, so a
+    // double-click can still toggle fullscreen instead
+    tapTimer = new QTimer(this);
+    tapTimer->setSingleShot(true);
+    connect(tapTimer, &QTimer::timeout, this, [this]{ goToFile(pendingTapMode); });
 
     connect(&imageCore, &QVImageCore::animatedFrameChanged, this, &QVGraphicsView::animatedFrameChanged);
     connect(&imageCore, &QVImageCore::fileChanged, this, &QVGraphicsView::postLoad);
@@ -151,17 +158,17 @@ void QVGraphicsView::mouseReleaseEvent(QMouseEvent *event)
     isTapCandidate = false;
 
     // Tap on the left half of the view goes to the previous file, on the right half to the next
-    goToFile(event->pos().x() < viewport()->width() / 2 ? GoToFileMode::previous : GoToFileMode::next);
+    pendingTapMode = event->pos().x() < viewport()->width() / 2 ? GoToFileMode::previous : GoToFileMode::next;
+    tapTimer->start(QApplication::doubleClickInterval());
 }
 
 void QVGraphicsView::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    // A quick second tap is another navigation tap, not a request to toggle fullscreen
+    // A double-click toggles fullscreen (handled by the main window) instead of navigating
     if (event->button() == Qt::LeftButton)
     {
-        mousePressEvent(event);
-        event->accept();
-        return;
+        tapTimer->stop();
+        isTapCandidate = false;
     }
 
     QGraphicsView::mouseDoubleClickEvent(event);

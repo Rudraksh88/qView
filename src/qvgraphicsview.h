@@ -156,5 +156,7 @@ private:
 
     QPoint tapPressPos;
     bool isTapCandidate;
+    QTimer *tapTimer;
+    GoToFileMode pendingTapMode;
 };
 #endif // QVGRAPHICSVIEW_H
